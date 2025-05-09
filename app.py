@@ -4,6 +4,9 @@ import numpy as np
 from pymongo import MongoClient
 from datetime import datetime
 
+# Load model
+pipe = pickle.load(open("Naive_model.pkl", "rb"))
+
 # Fungsi konversi
 def convert_numpy(obj):
     if isinstance(obj, np.integer):
@@ -14,20 +17,17 @@ def convert_numpy(obj):
         return obj.tolist()
     return obj
 
-# Load model
-pipe = pickle.load(open("Naive_model.pkl", "rb"))
-
 # Koneksi MongoDB
 client = MongoClient("mongodb+srv://egip3961:kuYAbaTOX@cluster0.ouoabdi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = client.dbspam
 collection = db.predictions
 
-# UI Streamlit
+# Streamlit App
 st.title("Deteksi Email Spam")
 
-email_input = st.text_area("Masukkan teks email:")
+email_input = st.text_area("Masukkan isi email:")
 
-if st.button("Prediksi"):
+if st.button("Deteksi"):
     result = pipe.predict([email_input])[0]
     result = convert_numpy(result)
 
