@@ -1,10 +1,10 @@
-from flask import Flask, render_template, request
+import streamlit as st
 import pickle
+import numpy as np
 from pymongo import MongoClient
 from datetime import datetime
-import numpy as np
 
-# Fungsi untuk mengonversi tipe data NumPy
+# Fungsi konversi
 def convert_numpy(obj):
     if isinstance(obj, np.integer):
         return int(obj)
@@ -14,40 +14,28 @@ def convert_numpy(obj):
         return obj.tolist()
     return obj
 
+# Load model
+pipe = pickle.load(open("Naive_model.pkl", "rb"))
+
 # Koneksi MongoDB
 client = MongoClient("mongodb+srv://egip3961:kuYAbaTOX@cluster0.ouoabdi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = client.dbspam
 collection = db.predictions
 
-app = Flask(__name__)
+# UI Streamlit
+st.title("Deteksi Email Spam")
 
-# Load model
-pipe = pickle.load(open("Naive_model.pkl", "rb"))
+email_input = st.text_area("Masukkan teks email:")
 
-@app.route('/', methods=["GET", "POST"])
-def main_function():
-    if request.method == "POST":
-        text = request.form
-        emails = text['email']
-        
-        list_email = [emails]
-        output = pipe.predict(list_email)[0]
-        
-        # Konversi output jika diperlukan
-        output = convert_numpy(output)
-        
-        # Simpan ke MongoDB
-        collection.insert_one({
-            "email": emails,
-            "prediction": output,
-            "timestamp": datetime.now()
-        })
+if st.button("Prediksi"):
+    result = pipe.predict([email_input])[0]
+    result = convert_numpy(result)
 
-        return render_template("show.html", prediction=output)
+    # Simpan ke MongoDB
+    collection.insert_one({
+        "email": email_input,
+        "prediction": result,
+        "timestamp": datetime.now()
+    })
 
-    else:
-        return render_template("index.html")
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
-
+    st.success(f"Prediksi: {'SPAM' if result == 1 else 'BUKAN SPAM'}")
